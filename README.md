@@ -27,6 +27,11 @@ Klient:
 Uruchom plik client.py, aby uruchomić instancję klienta.
 Podaj pseudonim użytkownika po zapytaniu.
 Rozpocznij wysyłanie wiadomości w czacie lub rozpocznij transfer plików za pomocą poleceń (/sendfile i /getfile).
+/sendfile ścieżkadoPliku: Użyj tego polecenia, aby wysłać plik do serwera. Podaj pełną ścieżkę do pliku jako argument. Np. /sendfile /ścieżka/do/pliku.txt.
+
+/getfile nazwapliku: Użyj tego polecenia, aby pobrać plik od innego użytkownika. Podaj nazwę pliku jako argument. Np. /getfile plik.txt.
+
+
 Wymagania
 Python 3.x
 hashlib (biblioteka standardowa)
