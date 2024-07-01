@@ -2,10 +2,16 @@ import socket
 import threading
 import hashlib
 import os
+from cryptography.fernet import Fernet
 
 HOST = '127.0.0.1'
 PORT = 12346
 
+# Wczytywanie klucza szyfrowania
+with open("secret.key", "rb") as key_file:
+    secret_key = key_file.read()
+
+cipher_suite = Fernet(secret_key)
 
 def calculate_md5(file_path):
     md5_hash = hashlib.md5()
@@ -14,11 +20,11 @@ def calculate_md5(file_path):
             md5_hash.update(byte_block)
     return md5_hash.hexdigest()
 
-
 def receive_messages(client):
     while True:
         try:
-            message = client.recv(1024).decode('utf-8')
+            encrypted_message = client.recv(1024)
+            message = cipher_suite.decrypt(encrypted_message).decode('utf-8')
             if message.startswith('/sendfile'):
                 file_name = message.split()[1]
                 file_size = int(client.recv(1024).decode('utf-8'))
@@ -42,7 +48,6 @@ def receive_messages(client):
             client.close()
             break
 
-
 def send_messages(client):
     while True:
         try:
@@ -53,7 +58,7 @@ def send_messages(client):
                     file_size = os.path.getsize(file_path)
                     md5_hash = calculate_md5(file_path)
 
-                    client.send(f'/sendfile {os.path.basename(file_path)}'.encode('utf-8'))
+                    client.send(cipher_suite.encrypt(f'/sendfile {os.path.basename(file_path)}'.encode('utf-8')))
                     client.send(str(file_size).encode('utf-8'))
 
                     with open(file_path, 'rb') as f:
@@ -64,14 +69,13 @@ def send_messages(client):
                     print('Plik nie istnieje!')
             elif message.startswith('/getfile'):
                 file_name = message.split()[1]
-                client.send(f'/getfile {file_name}'.encode('utf-8'))
+                client.send(cipher_suite.encrypt(f'/getfile {file_name}'.encode('utf-8')))
             else:
-                client.send(message.encode('utf-8'))
+                client.send(cipher_suite.encrypt(message.encode('utf-8')))
         except Exception as e:
             print(f'Błąd wysyłania wiadomości: {e}')
             client.close()
             break
-
 
 def main():
     if not os.path.exists('client_files'):
@@ -91,7 +95,6 @@ def main():
         send_thread.start()
     except Exception as e:
         print(f'Błąd połączenia z serwerem: {e}')
-
 
 if __name__ == "__main__":
     main()

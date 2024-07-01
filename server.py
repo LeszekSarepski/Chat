@@ -2,6 +2,7 @@ import socket
 import threading
 import hashlib
 import os
+from cryptography.fernet import Fernet
 
 # Ustawienia serwera
 HOST = '127.0.0.1'
@@ -9,6 +10,12 @@ PORT = 12346
 
 clients = {}
 files = {}  # słownik przechowujący pliki: {nazwa_pliku: (owner, ścieżka)}
+
+# Wczytywanie klucza szyfrowania
+with open("secret.key", "rb") as key_file:
+    secret_key = key_file.read()
+
+cipher_suite = Fernet(secret_key)
 
 
 def calculate_md5(file_path):
@@ -20,16 +27,19 @@ def calculate_md5(file_path):
 
 
 def broadcast(message, sender_client=None):
+    encrypted_message = cipher_suite.encrypt(message.encode('utf-8'))
     for client in clients:
         if client != sender_client:
-            client.send(message.encode('utf-8'))
+            client.send(encrypted_message)
 
 
 def handle_client(client):
     nickname = clients[client]
     while True:
         try:
-            message = client.recv(1024).decode('utf-8')
+            encrypted_message = client.recv(1024)
+            message = cipher_suite.decrypt(encrypted_message).decode('utf-8')
+
             if message.startswith('/sendfile'):
                 file_name = message.split()[1]
                 file_size = int(client.recv(1024).decode('utf-8'))
@@ -44,9 +54,9 @@ def handle_client(client):
 
                 if md5_sent == md5_received:
                     files[file_name] = (client, file_path)
-                    client.send('File transfer successful and verified!'.encode('utf-8'))
+                    client.send(cipher_suite.encrypt('File transfer successful and verified!'.encode('utf-8')))
                 else:
-                    client.send('File transfer failed: MD5 mismatch.'.encode('utf-8'))
+                    client.send(cipher_suite.encrypt('File transfer failed: MD5 mismatch.'.encode('utf-8')))
             elif message.startswith('/getfile'):
                 file_name = message.split()[1]
                 if file_name in files:
@@ -57,12 +67,12 @@ def handle_client(client):
                     file_size = os.path.getsize(file_path)
                     md5_hash = calculate_md5(file_path)
 
-                    client.send(f'/sendfile {file_name}'.encode('utf-8'))
+                    client.send(cipher_suite.encrypt(f'/sendfile {file_name}'.encode('utf-8')))
                     client.send(str(file_size).encode('utf-8'))
                     client.send(file_data)
                     client.send(md5_hash.encode('utf-8'))
                 else:
-                    client.send(f'File {file_name} not found.'.encode('utf-8'))
+                    client.send(cipher_suite.encrypt(f'File {file_name} not found.'.encode('utf-8')))
             else:
                 broadcast(f'{nickname}: {message}', client)
         except Exception as e:
@@ -90,7 +100,7 @@ def main():
         clients[client] = nickname
 
         print(f'Nick klienta: {nickname}')
-        client.send(f'Połączono z serwerem jako {nickname}!'.encode('utf-8'))
+        client.send(cipher_suite.encrypt(f'Połączono z serwerem jako {nickname}!'.encode('utf-8')))
         broadcast(f'{nickname} dołączył do czatu!', client)
 
         thread = threading.Thread(target=handle_client, args=(client,))
