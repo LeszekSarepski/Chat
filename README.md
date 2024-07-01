@@ -1,5 +1,5 @@
 Aplikacja Czatowa z Transferem Plików
-Repozytorium zawiera prostą aplikację czatową typu klient-serwer napisaną w Pythonie, wykorzystującą gniazdka (sockets). Aplikacja umożliwia podstawowe funkcje czatowania oraz bezpieczny transfer plików z weryfikacją sumy kontrolnej MD5.
+Repozytorium zawiera prostą aplikację czatową typu klient-serwer napisaną w Pythonie. Aplikacja umożliwia podstawowe funkcje czatowania oraz bezpieczny transfer plików z weryfikacją sumy kontrolnej MD5.
 
 Funkcje
 Czat: Klienci mogą wysyłać i odbierać wiadomości tekstowe w pokoju czatowym.
